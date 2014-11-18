@@ -6,11 +6,9 @@ from os.path import isfile
 
 
 def main():
-    history_file = get_history()
-    if not history_file:
+    history = get_history()
+    if not history:
         print("Shell history not found.")
-    with open(history_file, 'r') as h:
-        history = [l.strip() for l in h.readlines() if l.strip()]
     commands = {}
     for line in history:
         cmd = line.split()
@@ -23,7 +21,8 @@ def main():
     total = len(history)
     frequency = sorted(commands.keys(), key=lambda x: commands[x], reverse=True)
     print("{:>3} {:<20} {:<10} {:<3}".format('', "Command", "Count", "Percentage"))
-    for i in range(10):
+    # min for when history is very small 
+    for i in min(range(10), range(len(frequency)), key=len):
         cmd = frequency[i]
         count = commands[cmd]
         print("{i:>3} {cmd:<20} {count:<10} {percent:<3.3}%"
@@ -31,16 +30,21 @@ def main():
     return frequency
 
 
-def get_history():
-    """Get the history file for the shell in use."""
+def get_history(history_file=None):
+    """Get usage history for the shell in use."""
     shell = getenv("SHELL").split('/')[-1]
     home = getenv("HOME") + '/'
-    hist = {"bash": [".bash_history"], "fish": [".config/fish/fish_history"],
-            "zsh": [".zhistory", ".zsh_history"]}
-    if shell in hist:
-        for history in hist[shell]:
-            if isfile(home + history):
-                return home + history
+    hist_files = {"bash": [".bash_history"], "fish": [".config/fish/fish_history"],
+                  "zsh": [".zhistory", ".zsh_history"]}
+    if shell in hist_files:
+        for hist_file in hist_files[shell]:
+            if isfile(home + hist_file):
+                history_file = home + hist_file
+    with open(history_file, 'r') as h:
+        history = [l.strip() for l in h.readlines() if l.strip()]
+    if shell == "fish":
+        history = [l[7:] for l in  history if l.startswith("- cmd:")]
+    return history
 
 
 if __name__ == "__main__":
