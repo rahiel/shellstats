@@ -14,13 +14,13 @@ def main(n=10):
     commands = {}
     for line in history:
         cmd = line.split()
-        # if not cmd: continue
         if cmd[0] in commands:
             commands[cmd[0]] += 1
         else:
             commands[cmd[0]] = 1
 
     total = len(history)
+    # counts :: [(command, num_occurance)]
     counts = sorted(commands.items(), key=lambda x: x[1], reverse=True)
     print_top(n, counts, total)
     pie_top(n, counts)
@@ -72,6 +72,14 @@ def get_history(history_file=None):
         history = [l.strip() for l in h.readlines() if l.strip()]
     if shell == "fish":
         history = [l[7:] for l in history if l.startswith("- cmd:")]
+    elif shell == "zsh":
+        hist = []
+        for l in history:
+            if l.startswith(': '):
+                hist.append(l.split(';', 1)[-1])
+            else:
+                hist.append(l)
+        history = hist
     return history
 
 
