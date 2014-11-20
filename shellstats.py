@@ -1,16 +1,20 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from __future__ import print_function, division
+from __future__ import division
 from os import getenv
 from os.path import isfile
-from sys import argv, exit
+from sys import exit
+
+import click
 
 
-def main(n=10):
-    history = get_history()
-    if not history:
-        print("Shell history not found.")
-        exit()
+@click.command()
+@click.option("--n", default=10, help="How many commands to show.")
+@click.option("--history-file", type=click.Path(exists=True, readable=True),
+              default=None, help="Read shell history from history-file.")
+@click.option("--plot", is_flag=True, help="Plot command usage in pie chart.")
+def main(n, plot, history_file):
+    """Print the most frequently used shell commands."""
+    history = get_history(history_file)
     commands = {}
     for line in history:
         cmd = line.split()
@@ -23,7 +27,8 @@ def main(n=10):
     # counts :: [(command, num_occurance)]
     counts = sorted(commands.items(), key=lambda x: x[1], reverse=True)
     print_top(n, counts, total)
-    pie_top(n, counts)
+    if plot:
+        pie_top(n, counts)
     return counts
 
 
@@ -32,7 +37,7 @@ def pie_top(n, counts):
     try:
         import matplotlib.pyplot as plt
     except ImportError:
-        print("Please install matplotlib to use this option.")
+        click.echo(click.style("Please install matplotlib for plotting.", fg="red"))
         exit()
     label, x = zip(*counts[:n])
     fig = plt.figure()
@@ -45,27 +50,30 @@ def pie_top(n, counts):
 
 def print_top(n, counts, total):
     """Print the top n used commands."""
-    print("{:>3} {:<20} {:<10} {:<3}".format('', "Command", "Count", "Percentage"))
+    click.echo("{:>3} {:<20} {:<10} {:<3}"
+               .format('', "Command", "Count", "Percentage"))
     # min for when history is too small
     for i in min(range(n), range(len(counts)), key=len):
         cmd, count = counts[i]
-        print("{i:>3} {cmd:<20} {count:<10} {percent:<3.3}%"
-              .format(i=i+1, cmd=cmd, count=count, percent=count / total * 100))
+        click.echo("{i:>3} {cmd:<20} {count:<10} {percent:<3.3}%"
+                   .format(i=i+1, cmd=cmd, count=count,
+                           percent=count / total * 100))
 
 
-def get_history(history_file=None):
+def get_history(history_file):
     """Get usage history for the shell in use."""
+    shell = getenv("SHELL").split('/')[-1]
     if history_file is None:
-        shell = getenv("SHELL").split('/')[-1]
         home = getenv("HOME") + '/'
-        hist_files = {"bash": [".bash_history"], "fish": [".config/fish/fish_history"],
+        hist_files = {"bash": [".bash_history"],
+                      "fish": [".config/fish/fish_history"],
                       "zsh": [".zhistory", ".zsh_history"]}
         if shell in hist_files:
             for hist_file in hist_files[shell]:
                 if isfile(home + hist_file):
                     history_file = home + hist_file
         if not history_file:
-            print("Shell history file not found.")
+            click.echo(click.style("Shell history file not found.", fg="red"))
             exit()
 
     with open(history_file, 'r') as h:
@@ -81,10 +89,3 @@ def get_history(history_file=None):
                 hist.append(l)
         history = hist
     return history
-
-
-if __name__ == "__main__":
-    if len(argv) > 1:
-        main(int(argv[1]))
-    else:
-        main()
