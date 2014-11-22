@@ -9,12 +9,16 @@ import click
 
 @click.command()
 @click.option("--n", default=10, help="How many commands to show.")
+@click.option("--plot", is_flag=True, help="Plot command usage in pie chart.")
+@click.option("--command", default=None,
+              help="Most frequent subcommands for command, e.g. sudo, git.")
 @click.option("--history-file", type=click.Path(exists=True, readable=True),
               default=None, help="Read shell history from history-file.")
-@click.option("--plot", is_flag=True, help="Plot command usage in pie chart.")
-def main(n, plot, history_file):
+@click.option("--shell", default=None,
+              help="Specify shell history format: bash, fish or zsh.")
+def main(n, plot, command, history_file, shell):
     """Print the most frequently used shell commands."""
-    history = get_history(history_file)
+    history = get_history(history_file, shell, command)
     commands = {}
     for line in history:
         cmd = line.split()
@@ -28,11 +32,11 @@ def main(n, plot, history_file):
     counts = sorted(commands.items(), key=lambda x: x[1], reverse=True)
     print_top(n, counts, total)
     if plot:
-        pie_top(n, counts)
+        pie_top(n, counts, command)
     return counts
 
 
-def pie_top(n, counts):
+def pie_top(n, counts, command):
     """Show a pie chart of n most used commands."""
     try:
         import matplotlib.pyplot as plt
@@ -43,7 +47,11 @@ def pie_top(n, counts):
     fig = plt.figure()
     fig.canvas.set_window_title("ShellStats")
     plt.axes(aspect=1)
-    plt.title("Top {0} used shell commands.".format(min(n, len(counts))))
+    if command:
+        title = "Top {0} used {1} subcommands.".format(min(n, len(counts)), command)
+    else:
+        title = "Top {0} used shell commands.".format(min(n, len(counts)))
+    plt.title(title)
     plt.pie(x, labels=label)
     plt.show()
 
@@ -60,9 +68,9 @@ def print_top(n, counts, total):
                            percent=count / total * 100))
 
 
-def get_history(history_file):
+def get_history(history_file, shell, command):
     """Get usage history for the shell in use."""
-    shell = getenv("SHELL").split('/')[-1]
+    shell = shell or getenv("SHELL").split('/')[-1]
     if history_file is None:
         home = getenv("HOME") + '/'
         hist_files = {"bash": [".bash_history"],
@@ -83,9 +91,11 @@ def get_history(history_file):
     elif shell == "zsh":
         hist = []
         for l in history:
-            if l.startswith(': '):
+            if l.startswith(": "):
                 hist.append(l.split(';', 1)[-1])
             else:
                 hist.append(l)
         history = hist
+    if command:
+        history = [l[len(command) + 1:] for l in history if l.startswith(str(command))]
     return history
