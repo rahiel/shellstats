@@ -1,12 +1,10 @@
 from setuptools import setup
 
-
 setup(
     name="shellstats",
     version="0.1",
     description="Show the most used shell commands.",
     url="https://github.com/rahiel/shellstats",
-    download_url = "https://github.com/rahiel/shellstats/tarball/0.1.1",
     author="Rahiel Kasim",
     author_email="rahielkasim@gmail.com",
     license="MIT",
