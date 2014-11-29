@@ -7,7 +7,7 @@ setup(
     description="Show the most used shell commands.",
     long_description="blabla",
     url="https://github.com/rahiel/shellstats",
-    download_url = "https://github.com/rahiel/shellstats/tarball/0.1",
+    download_url = "https://github.com/rahiel/shellstats/tarball/0.1.1",
     author="Rahiel Kasim",
     author_email="rahielkasim@gmail.com",
     license="MIT",
